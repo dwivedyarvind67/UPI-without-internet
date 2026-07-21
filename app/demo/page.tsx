@@ -74,6 +74,45 @@ export default function DemoPage() {
   const [amount, setAmount] = useState<number>(500);
   const [pin, setPin] = useState("1234");
 
+  // Custom account input states
+  const [customVpaInput, setCustomVpaInput] = useState("");
+  const [customHolderInput, setCustomHolderInput] = useState("");
+  const [customBalanceInput, setCustomBalanceInput] = useState<number>(1000);
+  const [showCustomRegister, setShowCustomRegister] = useState(false);
+
+  const handleRegisterAccount = () => {
+    if (!customVpaInput.includes("@")) {
+      addLog("ERROR: VPA must be in a valid format containing '@' (e.g. arvind@arvind).");
+      return;
+    }
+    if (!customHolderInput.trim()) {
+      addLog("ERROR: Account Holder Name cannot be empty.");
+      return;
+    }
+    if (accounts.some((a) => a.vpa === customVpaInput.trim())) {
+      addLog("ERROR: VPA already exists in ledger.");
+      return;
+    }
+
+    const newAcc: SimulatedAccount = {
+      vpa: customVpaInput.trim().toLowerCase(),
+      holder: customHolderInput.trim(),
+      balance: customBalanceInput
+    };
+
+    setAccounts((prev) => [...prev, newAcc]);
+    addLog(`REGISTERED: Custom VPA ${newAcc.vpa} added to ledger with balance ₹${newAcc.balance.toFixed(2)}.`);
+    
+    // Auto-select the newly created VPA for the sender
+    setSenderVpa(newAcc.vpa);
+    
+    // Clear inputs
+    setCustomVpaInput("");
+    setCustomHolderInput("");
+    setCustomBalanceInput(1000);
+    setShowCustomRegister(false);
+  };
+
   // Log feed state
   const [logs, setLogs] = useState<string[]>([
     "Simulator initiated. Ledger seeded with starting balances.",
@@ -306,9 +345,11 @@ export default function DemoPage() {
                   onChange={(e) => setSenderVpa(e.target.value)}
                   className="w-full"
                 >
-                  <option value="alice@arvind">Alice (alice@arvind)</option>
-                  <option value="bob@arvind">Bob (bob@arvind)</option>
-                  <option value="carol@arvind">Carol (carol@arvind)</option>
+                  {accounts.map((acc) => (
+                    <option key={acc.vpa} value={acc.vpa}>
+                      {acc.holder} ({acc.vpa})
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -321,12 +362,72 @@ export default function DemoPage() {
                   onChange={(e) => setReceiverVpa(e.target.value)}
                   className="w-full"
                 >
-                  <option value="bob@arvind">Bob (bob@arvind)</option>
-                  <option value="carol@arvind">Carol (carol@arvind)</option>
-                  <option value="alice@arvind">Alice (alice@arvind)</option>
-                  <option value="dave@arvind">Dave (dave@arvind)</option>
+                  {accounts.map((acc) => (
+                    <option key={acc.vpa} value={acc.vpa}>
+                      {acc.holder} ({acc.vpa})
+                    </option>
+                  ))}
                 </select>
               </div>
+            </div>
+
+            {/* Custom Account Registration Drawer */}
+            <div className="mb-6">
+              <button
+                type="button"
+                onClick={() => setShowCustomRegister(!showCustomRegister)}
+                className="text-[10px] font-mono text-[var(--accent)] uppercase tracking-wider underline cursor-pointer"
+              >
+                {showCustomRegister ? "Hide Registration Form" : "Register Custom VPA (Real ID)"}
+              </button>
+
+              {showCustomRegister && (
+                <div className="mt-4 p-4 hairline-border rounded-[4px] bg-[rgba(20,33,61,0.02)] space-y-3">
+                  <h4 className="text-[10px] font-mono text-[var(--text-primary)] uppercase tracking-wider font-semibold">
+                    New Account Details
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[9px] font-mono text-[var(--text-muted)] mb-1">
+                        Holder Name (e.g. Arvind Dwivedi)
+                      </label>
+                      <input
+                        type="text"
+                        value={customHolderInput}
+                        onChange={(e) => setCustomHolderInput(e.target.value)}
+                        placeholder="Arvind Dwivedi"
+                        className="w-full text-xs py-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-mono text-[var(--text-muted)] mb-1">
+                        Custom VPA (e.g. arvind@arvind)
+                      </label>
+                      <input
+                        type="text"
+                        value={customVpaInput}
+                        onChange={(e) => setCustomVpaInput(e.target.value)}
+                        placeholder="arvind@arvind"
+                        className="w-full text-xs py-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-mono text-[var(--text-muted)] mb-1">
+                        Starting Balance (₹)
+                      </label>
+                      <input
+                        type="number"
+                        value={customBalanceInput}
+                        onChange={(e) => setCustomBalanceInput(Number(e.target.value))}
+                        className="w-full text-xs py-1"
+                      />
+                    </div>
+                  </div>
+                  <Button variant="secondary" onClick={handleRegisterAccount} className="mt-1">
+                    Add Account to Ledger
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
