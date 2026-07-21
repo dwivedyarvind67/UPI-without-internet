@@ -299,36 +299,54 @@ export default function DemoPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-[10px] font-mono text-[var(--text-muted)] uppercase mb-1">
-                  Sender Account
+                  Sender VPA (Editable)
                 </label>
-                <select
+                <input
+                  type="text"
                   value={senderVpa}
                   onChange={(e) => setSenderVpa(e.target.value)}
-                  className="w-full"
-                >
-                  {accounts.map((acc) => (
-                    <option key={acc.vpa} value={acc.vpa}>
-                      {acc.holder} ({acc.vpa})
-                    </option>
+                  placeholder="alice@arvind"
+                  className="w-full text-xs"
+                />
+                <div className="mt-1 flex flex-wrap gap-1 text-[9px] font-mono text-[var(--text-muted)]">
+                  <span>Quick pick:</span>
+                  {accounts.slice(0, 3).map((a) => (
+                    <button
+                      key={a.vpa}
+                      type="button"
+                      onClick={() => setSenderVpa(a.vpa)}
+                      className="underline hover:text-[var(--accent)] cursor-pointer mr-1.5"
+                    >
+                      {a.vpa.split("@")[0]}
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
 
               <div>
                 <label className="block text-[10px] font-mono text-[var(--text-muted)] uppercase mb-1">
-                  Receiver Account
+                  Receiver VPA (Editable)
                 </label>
-                <select
+                <input
+                  type="text"
                   value={receiverVpa}
                   onChange={(e) => setReceiverVpa(e.target.value)}
-                  className="w-full"
-                >
-                  {accounts.map((acc) => (
-                    <option key={acc.vpa} value={acc.vpa}>
-                      {acc.holder} ({acc.vpa})
-                    </option>
+                  placeholder="bob@arvind"
+                  className="w-full text-xs"
+                />
+                <div className="mt-1 flex flex-wrap gap-1 text-[9px] font-mono text-[var(--text-muted)]">
+                  <span>Quick pick:</span>
+                  {accounts.slice(0, 4).map((a) => (
+                    <button
+                      key={a.vpa}
+                      type="button"
+                      onClick={() => setReceiverVpa(a.vpa)}
+                      className="underline hover:text-[var(--accent)] cursor-pointer mr-1.5"
+                    >
+                      {a.vpa.split("@")[0]}
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
             </div>
 
