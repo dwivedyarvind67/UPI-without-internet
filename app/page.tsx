@@ -1,65 +1,134 @@
-import Image from "next/image";
+import React from "react";
+import Link from "next/link";
+import { ArrowRight, Smartphone, Share2, Globe, Shield } from "lucide-react";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { StatStrip } from "@/components/ui/StatStrip";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="flex-1 flex flex-col">
+      {/* Hero Section */}
+      <section className="py-20 md:py-32 px-6 max-w-5xl mx-auto text-center">
+        <h1 className="font-serif text-3xl md:text-5xl font-normal text-[var(--text-primary)] leading-tight tracking-tight max-w-4xl mx-auto">
+          Send payments in areas with zero connectivity.
+        </h1>
+        <p className="mt-6 text-sm md:text-base text-[var(--text-secondary)] font-sans max-w-2xl mx-auto leading-relaxed">
+          OfflinePay Mesh is a cryptographic protocol demonstrating secure deferred payment settlement.
+          Encrypted packets propagate device-to-device through a Bluetooth mesh network until a bridge walks outside and uploads it to the ledger.
+        </p>
+        <div className="mt-10 flex justify-center gap-4">
+          <Link href="/demo">
+            <Button variant="primary" className="gap-2">
+              Launch Simulator <ArrowRight className="w-3.5 h-3.5" />
+            </Button>
+          </Link>
+          <Link href="/how-it-works">
+            <Button variant="secondary">
+              Read Technical Spec
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      {/* Stat Strip */}
+      <StatStrip
+        stats={[
+          "Zero internet required at source",
+          "Bluetooth gossip routing",
+          "Deferred transaction settlement",
+          "Idempotent deduplication cache",
+          "Hybrid encryption protection"
+        ]}
+      />
+
+      {/* Signature Dotted Line Separator */}
+      <div className="h-[1px] w-full dashed-route-line opacity-20 my-16" />
+
+      {/* Process Pipeline Overview */}
+      <section className="px-6 max-w-7xl mx-auto w-full mb-24">
+        <div className="text-center mb-16">
+          <h2 className="font-serif text-2xl font-normal text-[var(--text-primary)] tracking-tight">
+            The Propagation Pipeline
+          </h2>
+          <p className="mt-2 text-xs font-mono uppercase tracking-wider text-[var(--text-muted)]">
+            How a payment hops to connectivity
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <Card>
+            <div className="flex items-center justify-between mb-4">
+              <span className="font-mono text-xs text-[var(--text-muted)]">STAGE 01</span>
+              <Smartphone className="w-5 h-5 text-[var(--accent)]" />
+            </div>
+            <h3 className="font-serif text-lg font-normal text-[var(--text-primary)] mb-2">
+              Sign & Encrypt
+            </h3>
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+              The offline sender enters the payment details. The phone signs the transaction and encrypts it using the server's RSA public key via hybrid AES-GCM. The raw payload remains invisible to relays.
+            </p>
+          </Card>
+
+          <Card>
+            <div className="flex items-center justify-between mb-4">
+              <span className="font-mono text-xs text-[var(--text-muted)]">STAGE 02</span>
+              <Share2 className="w-5 h-5 text-[var(--accent)]" />
+            </div>
+            <h3 className="font-serif text-lg font-normal text-[var(--text-primary)] mb-2">
+              Gossip Propagation
+            </h3>
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+              The phone broadcasts the encrypted packet over Bluetooth to nearby devices. Each device stores and forwards the packet to other peers, decrementing the time-to-live (TTL) counter with each hop.
+            </p>
+          </Card>
+
+          <Card>
+            <div className="flex items-center justify-between mb-4">
+              <span className="font-mono text-xs text-[var(--text-muted)]">STAGE 03</span>
+              <Globe className="w-5 h-5 text-[var(--accent)]" />
+            </div>
+            <h3 className="font-serif text-lg font-normal text-[var(--text-primary)] mb-2">
+              Bridge Ingestion
+            </h3>
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+              When any device holding the packet detects internet connectivity, it uploads the packet to the server. The server verifies freshness, checks for duplicates, and settles the balance atomically.
+            </p>
+          </Card>
         </div>
-      </main>
+      </section>
+
+      {/* Signature Dotted Line Separator */}
+      <div className="h-[1px] w-full dashed-route-line opacity-20 mb-20" />
+
+      {/* Factual Integrity Blocks */}
+      <section className="px-6 max-w-5xl mx-auto w-full mb-32">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <Shield className="w-4 h-4 text-[var(--accent)]" />
+              <h4 className="font-serif text-lg font-normal text-[var(--text-primary)]">
+                Cryptographic Defenses
+              </h4>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+              Our design enforces end-to-end payload integrity. Intermediaries carry payments but cannot inspect or alter amounts, VPAs, or signatures. Flipped bits trigger decryption failures instantly on the server.
+            </p>
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <Shield className="w-4 h-4 text-[var(--accent)]" />
+              <h4 className="font-serif text-lg font-normal text-[var(--text-primary)]">
+                Double-Spend Prevention
+              </h4>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+              To stop parallel duplicate settlement (the duplicate-storm problem), the backend implements an atomic compare-and-set key cache using the unique hash of the encrypted payload before executing ledger transactions.
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
