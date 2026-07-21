@@ -80,7 +80,88 @@ export default function DemoPage() {
   const [customBalanceInput, setCustomBalanceInput] = useState<number>(1000);
   const [showCustomRegister, setShowCustomRegister] = useState(false);
 
-  const handleRegisterAccount = () => {
+  // Log feed state
+  const [logs, setLogs] = useState<string[]>([
+    "Simulator initiated. Ledger seeded with starting balances.",
+    "Topology generated: 4 offline nodes, 1 online bridge node."
+  ]);
+
+  const addLog = (message: string) => {
+    const time = new Date().toLocaleTimeString();
+    setLogs((prev) => [`[${time}] ${message}`, ...prev]);
+  };
+
+  // Dynamic backend API poller
+  const refreshState = async () => {
+    try {
+      // 1. Fetch live accounts
+      const accRes = await fetch("/api/accounts");
+      if (accRes.ok) {
+        const accData = await accRes.json();
+        setAccounts(
+          accData.map((a: any) => ({
+            vpa: a.vpa,
+            holder: a.holderName,
+            balance: a.balance
+          }))
+        );
+      }
+
+      // 2. Fetch live mesh network state
+      const meshRes = await fetch("/api/mesh/state");
+      if (meshRes.ok) {
+        const meshData = await meshRes.json();
+        // Map backend devices (phone-alice, phone-stranger1, etc.)
+        const nameMap: Record<string, string> = {
+          "phone-alice": "Alice's Phone",
+          "phone-stranger1": "Stranger Hub 1",
+          "phone-stranger2": "Stranger Hub 2",
+          "phone-stranger3": "Stranger Hub 3",
+          "phone-bridge": "Bridge Terminal (4G)"
+        };
+        setDevices(
+          meshData.devices.map((d: any) => ({
+            id: d.deviceId,
+            name: nameMap[d.deviceId] || d.deviceId,
+            hasInternet: d.hasInternet,
+            packets: d.packetIds
+          }))
+        );
+        // Sync cache size
+        setDedupCache(new Set(new Array(meshData.idempotencyCacheSize)));
+      }
+
+      // 3. Fetch live transactions
+      const txRes = await fetch("/api/transactions");
+      if (txRes.ok) {
+        const txData = await txRes.json();
+        setTransactions(
+          txData.map((t: any) => ({
+            id: t.id,
+            hash: t.packetHash.substring(0, 14) + "...",
+            sender: t.senderVpa,
+            receiver: t.receiverVpa,
+            amount: t.amount,
+            bridge: t.bridgeNodeId,
+            hops: t.hopCount,
+            outcome: t.outcome,
+            timestamp: new Date(t.settledAt).toLocaleTimeString()
+          }))
+        );
+      }
+    } catch (e) {
+      // Backend might be offline
+    }
+  };
+
+  // Initial and periodic state refresh
+  React.useEffect(() => {
+    refreshState();
+    const interval = setInterval(refreshState, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleRegisterAccount = async () => {
     if (!customVpaInput.includes("@")) {
       addLog("ERROR: VPA must be in a valid format containing '@' (e.g. arvind@arvind).");
       return;
@@ -94,6 +175,8 @@ export default function DemoPage() {
       return;
     }
 
+    // Direct registration note: in this demo, accounts are loaded on backend startup. 
+    // We append locally for custom selections and then let the backend transaction pipeline settle them.
     const newAcc: SimulatedAccount = {
       vpa: customVpaInput.trim().toLowerCase(),
       holder: customHolderInput.trim(),
@@ -101,31 +184,17 @@ export default function DemoPage() {
     };
 
     setAccounts((prev) => [...prev, newAcc]);
-    addLog(`REGISTERED: Custom VPA ${newAcc.vpa} added to ledger with balance ₹${newAcc.balance.toFixed(2)}.`);
+    addLog(`REGISTERED locally: Custom VPA ${newAcc.vpa} added. Proceeding to inject payment.`);
     
-    // Auto-select the newly created VPA for the sender
     setSenderVpa(newAcc.vpa);
-    
-    // Clear inputs
     setCustomVpaInput("");
     setCustomHolderInput("");
     setCustomBalanceInput(1000);
     setShowCustomRegister(false);
   };
 
-  // Log feed state
-  const [logs, setLogs] = useState<string[]>([
-    "Simulator initiated. Ledger seeded with starting balances.",
-    "Topology generated: 4 offline nodes, 1 online bridge node."
-  ]);
-
-  const addLog = (message: string) => {
-    const time = new Date().toLocaleTimeString();
-    setLogs((prev) => [`[${time}] ${message}`, ...prev]);
-  };
-
-  // Inject a payment packet into phone-alice
-  const handleInject = () => {
+  // Inject a payment packet into phone-alice (Real API)
+  const handleInject = async () => {
     if (senderVpa === receiverVpa) {
       addLog("ERROR: Sender and receiver VPAs cannot be identical.");
       return;
@@ -135,189 +204,81 @@ export default function DemoPage() {
       return;
     }
 
-    // Check balance first (client pre-check, though server validates)
-    const sender = accounts.find((a) => a.vpa === senderVpa);
-    if (!sender || sender.balance < amount) {
-      addLog(`WARNING: Sender ${senderVpa} has insufficient funds. Packet will still propagate but may be REJECTED during settlement.`);
-    }
-
-    const packetId = Math.random().toString(36).substring(2, 10);
-    const nonce = Math.random().toString(36).substring(2, 12);
-    // Mimic the hash of the ciphertext
-    const ciphertextHash = "sha256_" + Math.random().toString(36).substring(2, 14);
-
-    const newPacket: EncryptedPacket = {
-      id: packetId,
-      senderVpa,
-      receiverVpa,
-      amount,
-      pin,
-      nonce,
-      ttl: 5,
-      createdAt: Date.now(),
-      ciphertextHash
-    };
-
-    // Store the packet in our global map
-    setActivePackets((prev) => {
-      const next = new Map(prev);
-      next.set(packetId, newPacket);
-      return next;
-    });
-
-    // Alice holds it first
-    setDevices((prevDevices) =>
-      prevDevices.map((d) =>
-        d.id === "phone-alice"
-          ? { ...d, packets: [...d.packets, packetId] }
-          : d
-      )
-    );
-
-    addLog(
-      `Packet ${packetId.toUpperCase()} encrypted via RSA-OAEP + AES-GCM and injected at phone-alice. TTL: 5.`
-    );
-  };
-
-  // Run a gossip propagation step
-  const handleGossip = () => {
-    let transfers = 0;
-    const currentDevices = [...devices];
-    const newDevices = currentDevices.map((d) => ({ ...d, packets: [...d.packets] }));
-
-    // Gossip rounds
-    for (let sourceIdx = 0; sourceIdx < currentDevices.length; sourceIdx++) {
-      const source = currentDevices[sourceIdx];
-      for (const packetId of source.packets) {
-        const packet = activePackets.get(packetId);
-        if (!packet || packet.ttl <= 0) continue;
-
-        // Spread to all other devices
-        for (let targetIdx = 0; targetIdx < currentDevices.length; targetIdx++) {
-          if (sourceIdx === targetIdx) continue;
-          const target = newDevices[targetIdx];
-
-          if (!target.packets.includes(packetId)) {
-            // Decrement TTL dynamically
-            packet.ttl = Math.max(0, packet.ttl - 1);
-            target.packets.push(packetId);
-            transfers++;
-          }
-        }
-      }
-    }
-
-    setDevices(newDevices);
-
-    if (transfers > 0) {
-      addLog(`Gossip Round Completed: Broadcasted packets to nearby peer devices. ${transfers} packet hops made.`);
-    } else {
-      addLog("Gossip Round: No propagation. Packets have either reached maximum hops or all nodes hold copies.");
-    }
-  };
-
-  // Bridge uploads and settles
-  const handleFlush = () => {
-    const bridge = devices.find((d) => d.hasInternet);
-    if (!bridge || bridge.packets.length === 0) {
-      addLog("Upload Attempt: No packets currently stored on online bridge nodes.");
-      return;
-    }
-
-    const packetsToUpload = [...bridge.packets];
-    addLog(`Bridge ${bridge.id.toUpperCase()} walked into 4G range. Uploading ${packetsToUpload.length} packet(s)...`);
-
-    packetsToUpload.forEach((packetId) => {
-      const packet = activePackets.get(packetId);
-      if (!packet) return;
-
-      const hash = packet.ciphertextHash;
-
-      // Deduplication check
-      if (dedupCache.has(hash)) {
-        addLog(`DUPLICATE DROPPED: Server rejected packet ${packetId.toUpperCase()} (Hash already exists in idempotency cache).`);
-        setTransactions((prev) => [
-          {
-            id: prev.length + 1,
-            hash: hash.substring(0, 14) + "...",
-            sender: packet.senderVpa,
-            receiver: packet.receiverVpa,
-            amount: packet.amount,
-            bridge: bridge.name,
-            hops: 5 - packet.ttl,
-            outcome: "DUPLICATE_DROPPED",
-            timestamp: new Date().toLocaleTimeString()
-          },
-          ...prev
-        ]);
-        return;
-      }
-
-      // Add to dedup cache
-      setDedupCache((prev) => {
-        const next = new Set(prev);
-        next.add(hash);
-        return next;
+    try {
+      const res = await fetch("/api/demo/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          senderVpa,
+          receiverVpa,
+          amount,
+          pin,
+          ttl: 5,
+          startDevice: "phone-alice"
+        })
       });
 
-      // Settlement logic
-      const sender = accounts.find((a) => a.vpa === packet.senderVpa);
-      const receiver = accounts.find((a) => a.vpa === packet.receiverVpa);
-
-      if (!sender || !receiver) {
-        addLog(`SETTLEMENT INVALID: VPAs associated with packet ${packetId.toUpperCase()} do not exist.`);
-        return;
-      }
-
-      let outcome: "SETTLED" | "REJECTED" = "SETTLED";
-      if (sender.balance < packet.amount) {
-        outcome = "REJECTED";
-        addLog(`SETTLEMENT REJECTED: Insufficient balance on account ${packet.senderVpa} for payment ${packetId.toUpperCase()}.`);
+      if (res.ok) {
+        const data = await res.json();
+        addLog(`SUCCESS: Packet ${data.packetId.substring(0, 8).toUpperCase()} encrypted via RSA-OAEP + AES-GCM and injected at phone-alice.`);
+        addLog(`   Ciphertext: ${data.ciphertextPreview}`);
+        refreshState();
       } else {
-        // Transfer money
-        setAccounts((prevAccounts) =>
-          prevAccounts.map((a) => {
-            if (a.vpa === packet.senderVpa) {
-              return { ...a, balance: a.balance - packet.amount };
-            }
-            if (a.vpa === packet.receiverVpa) {
-              return { ...a, balance: a.balance + packet.amount };
-            }
-            return a;
-          })
-        );
-        addLog(`SETTLED: Transferred ₹${packet.amount.toFixed(2)} from ${packet.senderVpa} to ${packet.receiverVpa}. Transaction logged.`);
+        addLog("ERROR: Failed to inject payment packet.");
       }
-
-      setTransactions((prev) => [
-        {
-          id: prev.length + 1,
-          hash: hash.substring(0, 14) + "...",
-          sender: packet.senderVpa,
-          receiver: packet.receiverVpa,
-          amount: packet.amount,
-          bridge: bridge.name,
-          hops: 5 - packet.ttl,
-          outcome,
-          timestamp: new Date().toLocaleTimeString()
-        },
-        ...prev
-      ]);
-    });
-
-    // Clear bridge packets once uploaded
-    setDevices((prevDevices) =>
-      prevDevices.map((d) => (d.hasInternet ? { ...d, packets: [] } : d))
-    );
+    } catch (e) {
+      addLog("ERROR: Backend API server unreachable.");
+    }
   };
 
-  // Reset mesh simulation state
-  const handleReset = () => {
-    setDevices((prevDevices) => prevDevices.map((d) => ({ ...d, packets: [] })));
-    setTransactions([]);
-    setDedupCache(new Set());
-    setActivePackets(new Map());
-    addLog("Simulator reset. Network states, deduplication registers, and ledgers cleared.");
+  // Run a gossip propagation step (Real API)
+  const handleGossip = async () => {
+    try {
+      const res = await fetch("/api/mesh/gossip", { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        addLog(`GOSSIP: Propagation round completed. ${data.transfers} packet hops processed across devices.`);
+        refreshState();
+      } else {
+        addLog("ERROR: Failed to run gossip round.");
+      }
+    } catch (e) {
+      addLog("ERROR: Backend API server unreachable.");
+    }
+  };
+
+  // Bridge uploads and settles (Real API)
+  const handleFlush = async () => {
+    try {
+      const res = await fetch("/api/mesh/flush", { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        addLog(`UPLOAD: Bridge uploaded packets to server. ${data.uploadsAttempted} upload(s) processed.`);
+        data.results.forEach((r: any) => {
+          addLog(`   Node: ${r.bridgeNode} | Packet: ${r.packetId.toUpperCase()} | Result: ${r.outcome}`);
+        });
+        refreshState();
+      } else {
+        addLog("ERROR: Failed to upload from bridge.");
+      }
+    } catch (e) {
+      addLog("ERROR: Backend API server unreachable.");
+    }
+  };
+
+  // Reset mesh simulation state (Real API)
+  const handleReset = async () => {
+    try {
+      const res = await fetch("/api/mesh/reset", { method: "POST" });
+      if (res.ok) {
+        addLog("RESET: Clear signal sent. Backend network state and deduplication registers purged.");
+        refreshState();
+      } else {
+        addLog("ERROR: Failed to clear backend cache.");
+      }
+    } catch (e) {
+      addLog("ERROR: Backend API server unreachable.");
+    }
   };
 
   return (
