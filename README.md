@@ -8,23 +8,51 @@ Instead of requiring a direct connection to the bank, payment instructions are c
 
 ---
 
-## Project Structure
+## 📸 Project Screenshots (Light Theme)
 
-This repository contains two main components:
+### 1. Landing Page
+![Landing page showing the pipeline preview](docs/screenshots/01-homepage.jpg)
 
-### 1. [Backend API (`/offlinepay-mesh`)](./offlinepay-mesh)
-The core settlement engine and cryptography layer.
-*   **Stack:** Java 17, Spring Boot 3.3.5, H2 Database (In-memory)
-*   **Features:** Hybrid RSA-OAEP + AES-GCM decryption, atomic deduplication (to prevent double-spending when multiple bridges upload the same packet), and replay attack prevention.
+### 2. Interactive Mesh Simulator
+![Live payment simulator dashboard](docs/screenshots/02-simulator.jpg)
 
-### 2. [Frontend UI & Simulator (`/offlinepay-web`)](./offlinepay-web)
-The institutional marketing site and interactive payment simulator.
-*   **Stack:** Next.js 16 (App Router), Tailwind CSS v4, React 19
-*   **Features:** Real-time visual simulator connecting to the backend to inject, propagate, and settle transactions. Includes full protocol documentation.
+### 3. System Architecture & Tech Stack
+![Tech stack table and architecture diagram details](docs/screenshots/03-architecture.jpg)
 
 ---
 
-## Quick Start (Run Locally)
+## 📂 Repository Folder Structure
+
+```text
+UPI-without-internet/
+├── offlinepay-mesh/           # Java Spring Boot Backend API
+│   ├── src/main/java/         # Application source code
+│   │   ├── api/               # REST Endpoints (/gossip, /inject, /settle)
+│   │   ├── security/          # Cryptography (RSA-2048-OAEP, AES-GCM)
+│   │   ├── engine/            # Mesh Simulation & Idempotency Services
+│   │   └── domain/            # H2 Database Entities (Account, Transaction)
+│   ├── pom.xml                # Maven configuration
+│   └── README.md              # Detailed backend documentation
+│
+├── offlinepay-web/            # Next.js Frontend Simulator & UI
+│   ├── app/                   # App Router Pages
+│   │   ├── demo/              # Interactive Simulator UI
+│   │   ├── architecture/      # Technical Spec Page
+│   │   ├── use-cases/         # Real-world Applications Page
+│   │   └── about/             # Developer Info Page
+│   ├── components/            # UI Components (Navbar, Cards, Badges)
+│   ├── public/                # Static assets
+│   └── README.md              # Detailed frontend documentation
+│
+├── docs/                      # Root Documentation Assets
+│   └── screenshots/           # UI Mockups
+│
+└── README.md                  # This file
+```
+
+---
+
+## 🚀 Quick Start (Run Locally)
 
 You can run both the frontend and backend locally to test the simulator.
 
@@ -53,5 +81,5 @@ Click on **Simulator** in the navbar to test the zero-internet payment routing!
 
 ---
 
-## License
+## 📜 License
 Built for learning, architectural demonstration, and portfolio purposes. Use freely.
