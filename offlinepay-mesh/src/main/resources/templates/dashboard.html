@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OfflinePay Mesh — Arvind Dwivedi</title>
+    <meta name="description" content="Offline UPI payment system routed through a Bluetooth mesh network. Built by Arvind Dwivedi.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: rgba(17, 24, 39, 0.7);
+            --bg-card-hover: rgba(31, 41, 55, 0.8);
+            --border: rgba(99, 102, 241, 0.15);
+            --border-glow: rgba(99, 102, 241, 0.4);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-indigo: #818cf8;
+            --accent-violet: #a78bfa;
+            --accent-emerald: #34d399;
+            --accent-rose: #fb7185;
+            --accent-amber: #fbbf24;
+            --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+            --gradient-success: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);
+            --gradient-danger: linear-gradient(135deg, #dc2626 0%, #ef4444 50%, #f87171 100%);
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.06);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.15);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Animated Background ── */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
+                        radial-gradient(circle at 50% 80%, rgba(52, 211, 153, 0.04) 0%, transparent 50%);
+            animation: bgShift 20s ease-in-out infinite;
+            z-index: 0;
+        }
+        @keyframes bgShift {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(-2%, 1%); }
+            66% { transform: translate(1%, -1%); }
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 32px 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── Header ── */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            letter-spacing: -0.02em;
+        }
+        .header .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            font-weight: 300;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        .header .author {
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* ── Glass Card ── */
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            border-color: var(--border);
+            box-shadow: var(--shadow), var(--shadow-glow);
+        }
+        .card h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent-indigo);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ── Controls Panel ── */
+        .controls {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(139, 92, 246, 0.03));
+            border: 1px solid rgba(99, 102, 241, 0.12);
+            border-radius: 20px;
+            padding: 28px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(12px);
+        }
+        .controls h3 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 18px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+        .step:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: var(--glass-border);
+        }
+        .step-badge {
+            flex-shrink: 0;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: white;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+        }
+        .step-content {
+            flex: 1;
+        }
+        .step-label {
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+        .step-label span {
+            color: var(--text-secondary);
+            font-weight: 300;
+        }
+
+        /* ── Form Elements ── */
+        select, input[type="number"], input[type="text"] {
+            background: rgba(15, 23, 42, 0.8);
+            color: var(--text-primary);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+        select:focus, input:focus {
+            border-color: var(--accent-indigo);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+        .arrow-icon {
+            color: var(--accent-violet);
+            font-weight: 600;
+            margin: 0 4px;
+        }
+
+        /* ── Buttons ── */
+        button {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 9px 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            position: relative;
+            overflow: hidden;
+        }
+        button::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(rgba(255,255,255,0.1), transparent);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        button:hover::after { opacity: 1; }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            color: white;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25);
+        }
+        .btn-secondary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.35);
+        }
+        .btn-danger {
+            background: var(--gradient-danger);
+            color: white;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.25);
+        }
+        .btn-danger:hover {
+            transform: translateY(-1px);
+        }
+        button:active {
+            transform: translateY(0px) scale(0.98);
+        }
+
+        /* ── Grid Layout ── */
+        .grid { display: grid; gap: 20px; }
+        .grid-2 { grid-template-columns: 1fr 1fr; }
+
+        @media (max-width: 768px) {
+            .grid-2 { grid-template-columns: 1fr; }
+        }
+
+        /* ── Device Cards ── */
+        .device {
+            padding: 14px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            border: 1px solid var(--glass-border);
+            background: rgba(15, 23, 42, 0.5);
+            transition: all 0.25s ease;
+        }
+        .device:hover {
+            background: rgba(15, 23, 42, 0.7);
+            border-color: var(--border);
+        }
+        .device.bridge {
+            border-color: rgba(52, 211, 153, 0.3);
+            background: rgba(5, 46, 22, 0.3);
+        }
+        .device.bridge:hover {
+            border-color: rgba(52, 211, 153, 0.5);
+            box-shadow: 0 0 15px rgba(52, 211, 153, 0.1);
+        }
+        .device-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .device-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .badge-online {
+            background: rgba(52, 211, 153, 0.15);
+            color: var(--accent-emerald);
+            border: 1px solid rgba(52, 211, 153, 0.3);
+        }
+        .badge-offline {
+            background: rgba(100, 116, 139, 0.15);
+            color: var(--text-muted);
+            border: 1px solid rgba(100, 116, 139, 0.3);
+        }
+
+        .packet-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--accent-indigo);
+            padding: 2px 8px;
+            border-radius: 6px;
+            margin: 2px;
+            display: inline-block;
+            border: 1px solid rgba(99, 102, 241, 0.15);
+        }
+
+        .pkt-count {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* ── Table ── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        th {
+            text-align: left;
+            padding: 10px 12px;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            border-bottom: 1px solid var(--glass-border);
+        }
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+        tr {
+            transition: background 0.15s;
+        }
+        tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .balance {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            color: var(--accent-emerald);
+        }
+
+        .status-SETTLED {
+            color: var(--accent-emerald);
+            font-weight: 600;
+            text-shadow: 0 0 8px rgba(52, 211, 153, 0.3);
+        }
+        .status-REJECTED { color: var(--accent-rose); font-weight: 600; }
+        .status-DUPLICATE_DROPPED { color: var(--accent-amber); font-weight: 600; }
+        .status-INVALID { color: var(--accent-rose); font-weight: 600; }
+
+        /* ── Activity Log ── */
+        #log {
+            background: rgba(2, 6, 23, 0.8);
+            color: var(--accent-emerald);
+            padding: 16px;
+            border-radius: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            max-height: 220px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            border: 1px solid rgba(52, 211, 153, 0.1);
+            line-height: 1.8;
+        }
+        #log::-webkit-scrollbar { width: 6px; }
+        #log::-webkit-scrollbar-track { background: transparent; }
+        #log::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 3px; }
+
+        .cache-info {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 10px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .small {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* ── Animations ── */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card, .controls {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .live-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-emerald);
+            display: inline-block;
+            animation: pulse 2s ease-in-out infinite;
+            margin-right: 6px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <h1>📡 OfflinePay Mesh</h1>
+        <p class="subtitle">
+            Send money in a basement with zero internet. Encrypted packets gossip from phone to phone
+            until a bridge device with 4G reaches the backend and settles the payment.
+        </p>
+        <p class="author">Built by Arvind Dwivedi</p>
+    </div>
+
+    <!-- Controls Panel -->
+    <div class="controls">
+        <h3>🎬 Demo Flow</h3>
+
+        <div class="step">
+            <div class="step-badge">1</div>
+            <div class="step-content">
+                <div class="step-label">Compose Payment <span>— simulates sender's phone</span></div>
+                <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px;">
+                    <select id="senderVpa">
+                        <option>alice@arvind</option>
+                        <option>bob@arvind</option>
+                        <option>carol@arvind</option>
+                    </select>
+                    <span class="arrow-icon">→</span>
+                    <select id="receiverVpa">
+                        <option>bob@arvind</option>
+                        <option>carol@arvind</option>
+                        <option>alice@arvind</option>
+                        <option>dave@arvind</option>
+                    </select>
+                    <span style="color: var(--text-secondary);">₹</span>
+                    <input type="number" id="amount" value="500" style="width: 90px">
+                    <span style="color: var(--text-secondary); font-size: 0.85rem;">PIN</span>
+                    <input type="text" id="pin" value="1234" style="width: 72px" maxlength="4">
+                    <button class="btn-primary" onclick="sendPacket()">📤 Inject into Mesh</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-badge">2</div>
+            <div class="step-content">
+                <div class="step-label">Gossip Propagation <span>— packets hop device to device</span></div>
+                <button class="btn-secondary" onclick="gossip()">🔄 Run Gossip Round</button>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-badge">3</div>
+            <div class="step-content">
+                <div class="step-label">Bridge Upload <span>— bridge node walks outside, hits 4G</span></div>
+                <button class="btn-secondary" onclick="flushBridges()">📡 Bridges Upload to Backend</button>
+                <span class="small" style="margin-left: 8px;">(parallel — exercises idempotency)</span>
+            </div>
+        </div>
+
+        <div style="margin-top: 8px; padding-left: 40px;">
+            <button class="btn-danger" onclick="resetMesh()">🗑 Reset Mesh + Cache</button>
+        </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid grid-2">
+        <div class="card">
+            <h2>📱 Mesh Devices</h2>
+            <div id="devices"></div>
+        </div>
+
+        <div class="card">
+            <h2>🏦 Account Balances</h2>
+            <table id="accounts-table">
+                <thead><tr><th>VPA</th><th>Holder</th><th>Balance</th></tr></thead>
+                <tbody></tbody>
+            </table>
+            <p class="cache-info" id="cacheInfo"></p>
+        </div>
+    </div>
+
+    <!-- Transaction Ledger -->
+    <div class="card" style="margin-top: 20px">
+        <h2>📜 Transaction Ledger <span class="live-dot"></span></h2>
+        <table id="tx-table">
+            <thead><tr>
+                <th>ID</th><th>From</th><th>To</th><th>Amount</th>
+                <th>Status</th><th>Bridge</th><th>Hops</th><th>Settled</th>
+            </tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Activity Log -->
+    <div class="card" style="margin-top: 20px">
+        <h2>🪵 Activity Log</h2>
+        <div id="log"></div>
+    </div>
+</div>
+
+<script>
+function log(msg) {
+    const el = document.getElementById('log');
+    const time = new Date().toLocaleTimeString();
+    el.textContent = `[${time}] ${msg}\n` + el.textContent;
+}
+
+async function refresh() {
+    try {
+        // Mesh state
+        const m = await fetch('/api/mesh/state').then(r => r.json());
+        const devicesDiv = document.getElementById('devices');
+        devicesDiv.innerHTML = m.devices.map(d => `
+            <div class="device ${d.hasInternet ? 'bridge' : 'offline'}">
+                <div class="device-header">
+                    <span class="device-name">${d.deviceId}</span>
+                    <span class="badge ${d.hasInternet ? 'badge-online' : 'badge-offline'}">
+                        ${d.hasInternet ? '🌐 4G' : '🚫 Offline'}
+                    </span>
+                    <span class="pkt-count">${d.packetCount} pkt${d.packetCount !== 1 ? 's' : ''}</span>
+                </div>
+                <div>${d.packetIds.map(id => `<span class="packet-id">${id}</span>`).join('')}</div>
+            </div>
+        `).join('');
+        document.getElementById('cacheInfo').textContent =
+            `Dedup cache: ${m.idempotencyCacheSize} hash(es)`;
+
+        // Accounts
+        const accs = await fetch('/api/accounts').then(r => r.json());
+        document.querySelector('#accounts-table tbody').innerHTML = accs.map(a => `
+            <tr><td>${a.vpa}</td><td>${a.holderName}</td>
+                <td class="balance">₹${parseFloat(a.balance).toFixed(2)}</td></tr>
+        `).join('');
+
+        // Transactions
+        const txs = await fetch('/api/transactions').then(r => r.json());
+        document.querySelector('#tx-table tbody').innerHTML = txs.map(t => `
+            <tr>
+                <td>${t.id}</td><td>${t.senderVpa}</td><td>${t.receiverVpa}</td>
+                <td class="balance">₹${parseFloat(t.amount).toFixed(2)}</td>
+                <td class="status-${t.outcome}">${t.outcome}</td>
+                <td><span class="small">${t.bridgeNodeId}</span></td>
+                <td>${t.hopCount}</td>
+                <td class="small">${new Date(t.settledAt).toLocaleTimeString()}</td>
+            </tr>
+        `).join('');
+    } catch (e) {
+        // Server might not be ready yet
+    }
+}
+
+async function sendPacket() {
+    const body = {
+        senderVpa: document.getElementById('senderVpa').value,
+        receiverVpa: document.getElementById('receiverVpa').value,
+        amount: parseFloat(document.getElementById('amount').value),
+        pin: document.getElementById('pin').value,
+        ttl: 5,
+        startDevice: 'phone-alice'
+    };
+    const r = await fetch('/api/demo/send', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
+    }).then(r => r.json());
+    log(`📤 Packet ${r.packetId.substring(0,8)} encrypted & injected at ${r.injectedAt} (TTL ${r.ttl})`);
+    log(`   ciphertext: ${r.ciphertextPreview}`);
+    refresh();
+}
+
+async function gossip() {
+    const r = await fetch('/api/mesh/gossip', {method: 'POST'}).then(r => r.json());
+    log(`🔄 Gossip: ${r.transfers} transfer(s) — ${JSON.stringify(r.deviceCounts)}`);
+    refresh();
+}
+
+async function flushBridges() {
+    const r = await fetch('/api/mesh/flush', {method: 'POST'}).then(r => r.json());
+    log(`📡 ${r.uploadsAttempted} bridge upload(s):`);
+    r.results.forEach(res => {
+        log(`   ${res.bridgeNode} packet ${res.packetId} → ${res.outcome}` +
+            (res.reason ? ` (${res.reason})` : ''));
+    });
+    refresh();
+}
+
+async function resetMesh() {
+    await fetch('/api/mesh/reset', {method: 'POST'});
+    log('🗑 Mesh + dedup cache cleared');
+    refresh();
+}
+
+refresh();
+setInterval(refresh, 3000);
+</script>
+</body>
+</html>

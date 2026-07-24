@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+:root {
+  /* Warm off-white base */
+  --bg: #F7F5F0;
+  --surface: #FFFFFF;
+  --text-primary: #14213D;
+  --text-secondary: #5C6B7A;
+  --text-muted: #8E9BA8;
+  --accent: #0F6B5C; /* Deep Teal Accent */
+  --border: rgba(20, 33, 97, 0.10); /* Hairline */
+  --card-shadow: none;
+}
+
+[data-theme="dark"] {
+  /* Deep Navy base */
+  --bg: #0B1E3D;
+  --surface: #10284D;
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --accent: #C9A227; /* Muted Gold Accent */
+  --border: rgba(241, 245, 249, 0.12);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Institutional custom styling rules */
+.dotted-route {
+  background-image: radial-gradient(circle, var(--text-muted) 1px, transparent 1px);
+  background-size: 16px 16px;
+  opacity: 0.15;
+}
+
+/* Custom dashed route line motif */
+.dashed-route-line {
+  background-image: linear-gradient(to right, var(--text-muted) 50%, transparent 50%);
+  background-position: bottom;
+  background-size: 8px 1px;
+  background-repeat: repeat-x;
+}
+
+/* Hairline border utilities */
+.hairline-border {
+  border: 1px solid var(--border);
+}
+
+.hairline-border-b {
+  border-bottom: 1px solid var(--border);
+}
+
+.hairline-border-t {
+  border-top: 1px solid var(--border);
+}
+
+.hairline-border-r {
+  border-right: 1px solid var(--border);
+}
+
+.hairline-border-l {
+  border-left: 1px solid var(--border);
+}
